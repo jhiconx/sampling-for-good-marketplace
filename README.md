@@ -1,20 +1,26 @@
 # Sampling For Good Marketplace
 
-This is the single canonical GitHub source for the Sampling For Good Marketplace.
+**Live website:** https://sampling-for-good-marketplace.vercel.app/
 
-- **Live Marketplace:** https://sampling-for-good-marketplace.vercel.app/
-- **Vercel production project:** `sampling-for-good-marketplace`
-- **Production branch:** `main`
-- **Current Vercel root directory:** `marketplace-preview/` (historical internal folder name; not a separate application).
-- **Supabase project ref:** `yxfqfrgjjbxagrioeqzz` (marketplace account, chapter, brand, proposal and messaging data).
-- **Original distribution/legacy site:** `samplingforgood-b5ld` (being retired).
+This repository is the one production codebase for the Organization and Brand Marketplace. The earlier distribution PWA, duplicate navigation module and obsolete Vercel API proxy were retired. Historic versions remain in Git history and the saved backups.
 
-## Important: sample-request backend migration pending
+## Production
 
-The Marketplace currently routes `/api/sample-request` to the legacy `samplingforgood-b5ld` Vercel API using the rewrite in `marketplace-preview/vercel.json`. That older Vercel project holds protected email, database service, and rate-limit environment variables.
+- **Vercel project:** `sampling-for-good-marketplace`
+- **GitHub:** `jhiconx/sampling-for-good-marketplace`, `main` branch
+- **Vercel Root Directory:** `marketplace-preview` (historical folder name, not a second application)
+- **Supabase project:** `yxfqfrgjjbxagrioeqzz`
+- **Sample-request Edge Function:** `sfg-sample-request`
 
-**Do not delete `samplingforgood-b5ld` until this API is migrated to the Marketplace, its protected environment variables are configured there, and a live submission test passes.** The root-level `api/sample-request.js` implements this API.
+The sample form requires a signed-in Organization account and writes a validated request to `public.sfg_distribution_requests` through the Edge Function. The browser never has access to the Supabase service-role key. The function attempts to email `samples@iconx.io` only when the following **server-side Supabase Edge Function secrets** are configured:
 
-This repo contains the historical original `public/` application as well as the Marketplace. The public Marketplace is the only active development target. The backend and legacy code will be consolidated after the API migration.
+- `RESEND_API_KEY` (Resend service API key)
+- `SAMPLE_FROM_EMAIL` (verified sending address)
 
-Only commit/deploy changes on explicit authorization. Standalone demos are not the development target.
+When email credentials are absent or delivery fails, the request is still saved, and the website truthfully reports that the automatic email did not send and offers a manual email copy. The old `samplingforgood-b5ld` project and its secret configuration are **not** required to store submissions.
+
+## Operating rules
+
+- One Marketplace website, one production GitHub repository, one Supabase project.
+- Production changes only upon explicit request. Standalone demos are not the deployment target.
+- Test Organization and Brand accounts separately: account roles are fixed to their signed-in account.

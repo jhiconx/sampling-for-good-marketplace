@@ -17,7 +17,18 @@ if(!nav.brand.includes('Messages'))nav.brand.splice(nav.brand.indexOf('Campaigns
 iconFor=function(t){return t==='Messages'?'✉':oldIcon(t)};
 const signOutBtn=document.createElement('button');signOutBtn.className='nav market-logout';signOutBtn.textContent='↪ Log out';signOutBtn.onclick=()=>logoutAccount();
 const sidebar=document.querySelector('.sidebar');if(sidebar)sidebar.append(signOutBtn);
-logoutAccount=async function(){await auth().auth.signOut();currentUser=null;m.authRole=null;m.loaded=false;m.chapters=[];m.brands=[];m.proposals=[];m.events=[];m.threads=[];m.messages=[];m.activeThread=null;home({history:'replace'});closeSignIn()};
+logoutAccount=async function(){
+ const {error}=await auth().auth.signOut();
+ if(error){signMessage(error.message);openSignIn();return}
+ currentUser=null;requestedRole=null;m.authRole=null;m.loaded=false;m.loading=false;
+ m.chapters=[];m.brands=[];m.proposals=[];m.events=[];m.threads=[];m.messages=[];m.activeThread=null;
+ interest.clear();previewNote='';role='org';tab='Overview';
+ Object.assign(data.org,{name:'',university:'',members:0,charity:'',contactName:'',phone:'',email:'',region:'',organizationType:'Sorority'});
+ Object.assign(data.brand,{name:'',category:'',region:'Nationwide',members:'Any size'});
+ const email=document.getElementById('signin-email'),password=document.getElementById('signin-password');
+ if(email)email.value='';if(password)password.value='';
+ closeModal();home({history:'replace'});signMessage('Signed out. Sign in or create an account.');openSignIn();
+};
 async function fetchAll(){
  if(!currentUser||m.loading)return;
  m.loading=true;
@@ -61,10 +72,23 @@ readAccount=async function(){
    fetchAll();
  }
 };
+function showRoleSwitch(nextRole){
+ const signedInAs=m.authRole==='org'?'Organization':'Brand',requested=nextRole==='org'?'Organization':'Brand';
+ home({history:'replace'});
+ document.getElementById('modalbody').innerHTML=`<h2>Switch to ${requested}?</h2><p>This login belongs to an ${signedInAs} account. Sign out and use a ${requested} account to switch portals.</p><div class="btnrow"><button class="limebtn" onclick="sfgMarket.switchAccount('${nextRole}')">Switch account</button><button class="ghost" onclick="closeModal()">Stay signed in</button></div>`;
+ document.getElementById('drawer').style.display='flex';
+}
 start=function(r,options={}){
- if(currentUser&&m.authRole&&r!==m.authRole){oldStart(m.authRole,options);say('This login belongs to the '+(m.authRole==='org'?'Organization':'Brand')+' portal. Log out to use a different account.');return}
+ if(!nav[r])return;
+ if(currentUser&&m.authRole&&r!==m.authRole){showRoleSwitch(r);return}
  oldStart(r,options);if(currentUser)fetchAll();
 };
+async function switchAccount(nextRole){
+ await logoutAccount();
+ requestedRole=nextRole;
+ signMessage('Sign in or create a '+(nextRole==='brand'?'Brand':'Organization')+' account.');
+ openSignIn();
+}
 navigate=function(n,options={}){oldNavigate(n,options);if(['Find Chapters','Proposals','Create Proposal','Messages','Events','Profile','New Interests'].includes(n)&&currentUser)fetchAll()};
 async function saveOrgProfile(){
  if(!currentUser)return;
@@ -157,7 +181,7 @@ orgPage=function(){switch(tab){case 'Events':return eventView();case 'Proposals'
 brandPage=function(){switch(tab){case 'Find Chapters':return chaptersView();case 'Create Proposal':return proposalBuilder();case 'Proposals':return proposalView();case 'Messages':return messagesView();case 'Profile':return brandSettings();default:return oldBrandPage()}};
 const baseRender=render;
 render=function(){baseRender();const bar=document.getElementById('mobilebar');if(bar&&!bar.querySelector('.market-mobile-logout')){const b=document.createElement('button');b.className='market-mobile-logout';b.textContent='↪ Log out';b.onclick=()=>logoutAccount();bar.append(b)}};
-window.sfgMarket={saveOrgProfile,saveBrandProfile,filterChapters,editEvent,saveEvent,sendProposal,setProposalStatus,openThreadWith,startConversation,chooseThread,refreshMessages,sendMessage};
+window.sfgMarket={switchAccount,saveOrgProfile,saveBrandProfile,filterChapters,editEvent,saveEvent,sendProposal,setProposalStatus,openThreadWith,startConversation,chooseThread,refreshMessages,sendMessage};
 window.setInterval(()=>{if(document.visibilityState==='visible'&&currentUser&&tab==='Messages'&&!m.loading)fetchAll()},15000);
-window.setTimeout(()=>{if(currentUser){m.authRole=m.authRole||role;fetchAll()}},1200);
+initializeAccount();
 })();
