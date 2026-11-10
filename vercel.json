@@ -12,5 +12,12 @@
         }
       ]
     }
+  ],
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "https://sampling-for-good-marketplace.vercel.app/",
+      "permanent": true
+    }
   ]
 }
