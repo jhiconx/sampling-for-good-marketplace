@@ -1,0 +1,33 @@
+/* SFG Marketplace: functional calendars, brand targeting, secure conversations */
+.market-status{background:#f2edff;color:#6b42ae;padding:13px 16px;border-radius:12px;margin-bottom:16px;font-size:14px}
+.market-logout{margin-top:22px!important;color:#8454cf!important;border:1px solid #e6d9f1!important;background:#fff!important}
+.market-logout:hover{background:#f7efff!important}
+.market-footnote{color:#837291;font-size:13px;margin:15px 0 0}
+.market-proposals{display:grid;gap:16px;margin-top:24px}
+.market-proposal{border:1px solid #e6dbea;border-radius:22px;padding:24px;background:#fff;box-shadow:0 8px 26px rgba(42,26,70,.04)}
+.market-proposal h3{font:800 22px Manrope,sans-serif;margin:10px 0;color:#21142d}
+.market-proposal p{color:#786987;font-size:14px}
+.market-direction{font-size:14px;font-weight:800;color:#7750c7}
+.market-small{color:#80708e;font-size:14px;margin-bottom:12px}
+.market-pill{display:inline-block;background:#f3ecff;color:#754abc;font-size:12px;font-weight:700;padding:6px 12px;border-radius:100px}
+.market-row-actions{display:flex;gap:8px;flex-wrap:wrap}
+.market-messaging{display:grid;grid-template-columns:minmax(200px,280px) minmax(0,1fr);gap:16px;margin-top:26px;min-height:490px}
+.market-peers,.market-chat{border:1px solid #e6dbea;background:#fff;border-radius:22px;overflow:hidden}
+.market-peers{padding:18px;display:flex;flex-direction:column;gap:10px}
+.market-peers h3{font:800 16px Manrope;margin:2px 0 5px;color:#21142d}
+.market-peers select{border:1px solid #e4d9ea;border-radius:13px;padding:12px;min-width:0}
+.market-peers .limebtn{background:linear-gradient(105deg,#ed59c7,#955ffa,#398aff);color:#fff}
+.market-peers hr{border:0;border-top:1px solid #eee4f2;width:100%;margin:12px 0}
+.market-peer{width:100%;border:1px solid #e9e0ef;background:#fff;color:#33233e;text-align:left;border-radius:12px;padding:12px;cursor:pointer}
+.market-peer.active,.market-peer:hover{background:#f4edff;border-color:#d4bdeb}
+.market-chat{display:flex;flex-direction:column}
+.market-chat-head{padding:18px;font-weight:800;color:#281a37;border-bottom:1px solid #eee4f2;display:flex;justify-content:space-between;gap:10px;align-items:center}
+.market-refresh{border:1px solid #e8def0;background:#fff;border-radius:999px;color:#7d4bc5;padding:8px 12px;cursor:pointer}
+.market-chat-history{padding:20px;flex:1;background:#fbf8ff;min-height:280px;max-height:460px;overflow:auto}
+.market-bubble{max-width:85%;width:max-content;min-width:70px;border:1px solid #eee2f1;background:#fff;padding:13px 16px;border-radius:17px;margin:0 0 13px;color:#25182e;overflow-wrap:anywhere}
+.market-bubble.mine{background:#e8d9ff;border-color:#d5baf9;margin-left:auto}
+.market-bubble small{display:block;margin-top:7px;color:#84738f;font-size:11px}
+.market-composer{padding:12px;border-top:1px solid #eee5f2;display:flex;gap:8px}
+.market-composer input{flex:1;min-width:0;padding:12px;border:1px solid #ddd0e8;border-radius:13px}
+.market-composer .limebtn{border-radius:12px;background:linear-gradient(105deg,#e355c9,#905ff6,#3489ff);color:#fff}
+@media(max-width:800px){.market-messaging{grid-template-columns:1fr}.market-peers{max-height:260px;overflow-y:auto}.market-row-actions{flex-direction:column}}
