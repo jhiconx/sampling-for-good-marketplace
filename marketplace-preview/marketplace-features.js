@@ -155,6 +155,8 @@ async function refreshMessages(){await fetchAll()}
 async function sendMessage(){const input=document.getElementById('mp-message');const body=input?.value?.trim();if(!body||!m.activeThread)return;const r=await dbClient().from('sfg_marketplace_messages').insert({thread_id:m.activeThread,sender_user_id:currentUser.id,body});if(r.error){showError(r.error,'Message not sent');return}await fetchMessages(m.activeThread);render()}
 orgPage=function(){switch(tab){case 'Events':return eventView();case 'Proposals':return proposalView();case 'Messages':return messagesView();case 'Profile':return orgSettings();default:return oldOrgPage()}};
 brandPage=function(){switch(tab){case 'Find Chapters':return chaptersView();case 'Create Proposal':return proposalBuilder();case 'Proposals':return proposalView();case 'Messages':return messagesView();case 'Profile':return brandSettings();default:return oldBrandPage()}};
+const baseRender=render;
+render=function(){baseRender();const bar=document.getElementById('mobilebar');if(bar&&!bar.querySelector('.market-mobile-logout')){const b=document.createElement('button');b.className='market-mobile-logout';b.textContent='↪ Log out';b.onclick=()=>logoutAccount();bar.append(b)}};
 window.sfgMarket={saveOrgProfile,saveBrandProfile,filterChapters,editEvent,saveEvent,sendProposal,setProposalStatus,openThreadWith,startConversation,chooseThread,refreshMessages,sendMessage};
 window.setInterval(()=>{if(document.visibilityState==='visible'&&currentUser&&tab==='Messages'&&!m.loading)fetchAll()},15000);
 window.setTimeout(()=>{if(currentUser){m.authRole=m.authRole||role;fetchAll()}},1200);

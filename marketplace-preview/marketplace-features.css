@@ -31,3 +31,4 @@
 .market-composer input{flex:1;min-width:0;padding:12px;border:1px solid #ddd0e8;border-radius:13px}
 .market-composer .limebtn{border-radius:12px;background:linear-gradient(105deg,#e355c9,#905ff6,#3489ff);color:#fff}
 @media(max-width:800px){.market-messaging{grid-template-columns:1fr}.market-peers{max-height:260px;overflow-y:auto}.market-row-actions{flex-direction:column}}
+.market-mobile-logout{border:1px solid #d9c7ee!important;border-radius:12px!important;background:#fff!important;color:#7545c3!important;font-weight:800!important}
