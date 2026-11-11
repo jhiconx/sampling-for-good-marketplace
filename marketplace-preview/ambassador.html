@@ -101,7 +101,7 @@
    try{response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:controller.signal});}finally{clearTimeout(timer);}
    const result=await response.json().catch(()=>({}));
    if(!response.ok||!result?.ok||!result?.received)throw new Error(result.error||'We could not receive your application. Please try again.');
-   form.reset();form.hidden=true;status.className='status ok';status.textContent="Application received. Thanks for applying! We'll contact you if you're selected for the next step.";
+   form.parentElement.appendChild(status);form.reset();form.hidden=true;status.className='status ok';status.textContent="Application received. Thanks for applying! We'll contact you if you're selected for the next step.";
   }catch(err){status.className='status error';status.textContent=err?.name==='AbortError'?'The request timed out. Please try again.':err?.message||'Unable to submit now. Please try again.';}
   finally{busy=false;button.disabled=false;button.textContent='Submit my application →';}
  });
