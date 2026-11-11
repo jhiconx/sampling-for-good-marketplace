@@ -183,5 +183,38 @@ const baseRender=render;
 render=function(){baseRender();const bar=document.getElementById('mobilebar');if(bar&&!bar.querySelector('.market-mobile-logout')){const b=document.createElement('button');b.className='market-mobile-logout';b.textContent='↪ Log out';b.onclick=()=>logoutAccount();bar.append(b)}};
 window.sfgMarket={switchAccount,saveOrgProfile,saveBrandProfile,filterChapters,editEvent,saveEvent,sendProposal,setProposalStatus,openThreadWith,startConversation,chooseThread,refreshMessages,sendMessage};
 window.setInterval(()=>{if(document.visibilityState==='visible'&&currentUser&&tab==='Messages'&&!m.loading)fetchAll()},15000);
+function mountAmbassadorEntry(){
+ const grid=document.querySelector('.rolegrid-v2');
+ if(!grid||document.getElementById('ambassador-portal-option'))return;
+ const style=document.createElement('style');
+ style.textContent=`
+ .rolegrid-v2{grid-template-columns:repeat(3,minmax(0,1fr))!important;align-items:stretch;gap:20px}
+ .rolegrid-v2>.role{min-width:0}
+ .ambassador-role{background:linear-gradient(148deg,#f9f4ff 0%,#f2eaff 62%,#eaf0ff 100%);border:1px solid #ded0f5!important;border-radius:25px;position:relative;overflow:hidden;padding:30px 25px!important;display:flex!important;flex-direction:column;align-items:stretch;justify-content:center;gap:15px;min-height:450px}
+ .ambassador-role .amb-icon{width:80px;height:80px;display:grid;place-items:center;border-radius:24px;background:linear-gradient(135deg,#9158ea,#dc5ab6);font-size:43px;color:#fff;box-shadow:0 17px 29px #7950d82e}
+ .ambassador-role .amb-eyebrow{font:800 11px Manrope,sans-serif;text-transform:uppercase;letter-spacing:1.6px;color:#8651c0}
+ .ambassador-role h2{font:800 clamp(24px,2.4vw,35px)/1.15 Manrope,sans-serif;margin:0;letter-spacing:-1.25px;color:#21162f}
+ .ambassador-role p{font-size:14px;line-height:1.65;margin:0;color:#675976}
+ .ambassador-role .amb-pills{display:flex;flex-wrap:wrap;gap:7px}
+ .ambassador-role .amb-pills span{padding:7px 9px;font:800 10px Manrope,sans-serif;background:white;border-radius:50px;color:#72509a}
+ .ambassador-role .amb-cta{display:flex;align-items:center;justify-content:center;border-radius:99px;padding:14px 16px;font:800 13px Manrope,sans-serif;background:linear-gradient(100deg,#e252b2,#8756e8,#5380fa);color:white;text-decoration:none;margin-top:8px;box-shadow:0 8px 18px #8158e62c}
+ .ambassador-role .amb-cta:hover{transform:translateY(-2px)}
+ @media(max-width:1100px){.rolegrid-v2{grid-template-columns:repeat(2,minmax(0,1fr))!important}.ambassador-role{grid-column:1/-1;min-height:auto;max-width:none}}
+ @media(max-width:700px){.rolegrid-v2{grid-template-columns:minmax(0,1fr)!important}.ambassador-role{grid-column:auto;padding:25px!important;min-height:auto}}
+ `;
+ document.head.append(style);
+ const card=document.createElement('article');
+ card.id='ambassador-portal-option';
+ card.className='role role-v2 ambassador-role';
+ card.innerHTML=`
+   <div class="amb-icon" aria-hidden="true">✦</div>
+   <div class="amb-eyebrow">Third way to join · Students</div>
+   <h2>Campus Brand Ambassador</h2>
+   <p>Become your school's go-to connector for brands and organizations. Coordinate sample campaigns, shipments, training, and campus support.</p>
+   <div class="amb-pills"><span>Paid internship opportunities</span><span>Résumé builder</span><span>School influencer</span></div>
+   <a class="amb-cta" href="./ambassador.html">Apply to represent your school →</a>`;
+ grid.appendChild(card);
+}
+mountAmbassadorEntry();
 initializeAccount();
 })();
