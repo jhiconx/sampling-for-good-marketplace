@@ -212,9 +212,9 @@ function mountAmbassadorEntry(){
    <div class="amb-icon" aria-hidden="true">✦</div>
    <div class="amb-eyebrow">Third way to join · Students</div>
    <h2>Campus Brand Ambassador</h2>
-   <p>Become your school's go-to connector for brands and organizations. Coordinate sample campaigns, shipments, training, and campus support.</p>
+   <p>Set up meetings with university chapters, help them join the Marketplace, train new chapters, and support their first three sampling events.</p>
    <div class="amb-photo"><img src="./assets/campus-ambassador-photo.webp" alt="University of Arizona student presenting a beverage sample at a campus event" loading="lazy"></div>
-   <div class="amb-pills"><span>Paid internship opportunities</span><span>Résumé builder</span><span>School influencer</span></div>
+   <div class="amb-pills"><span>$25 / signed-up chapter</span><span>$1 / unique redemption in first 3 events</span><span>Final campus bonus: TBD</span></div>
    <a class="amb-cta" href="./ambassador.html">Apply to represent your school →</a>`;
  grid.appendChild(card);
 }
