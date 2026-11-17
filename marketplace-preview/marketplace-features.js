@@ -30,7 +30,7 @@ brandArt=function(b){
   const url='https://www.google.com/s2/favicons?domain='+encodeURIComponent(domain)+'&sz=256';
   return '<div class="product-art simple"><img src="'+url+'" alt="'+name+' brand mark" loading="lazy" referrerpolicy="no-referrer" style="width:104px;height:104px;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.08))" onerror="this.outerHTML=\x27<span class=brand-logo-word>'+name.replace(/'/g,'&#39;')+'</span>\x27"></div>';
 };
-const m={chapters:[],brands:[],events:[],proposals:[],threads:[],messages:[],activeThread:null,loading:false,loaded:false,eventChoice:null,authRole:null,masterAccess:false};
+const m={chapters:[],brands:[],events:[],proposals:[],threads:[],messages:[],activeThread:null,loading:false,loaded:false,eventChoice:null,authRole:null,masterAccess:false,verifiedUserId:null};
 const states=['Arizona','California','Texas','Florida','Georgia','Alabama','North Carolina','South Carolina','Tennessee','Mississippi','Louisiana','Kentucky','Michigan','Ohio','Indiana','Illinois','Wisconsin','Minnesota','Iowa','Missouri','Kansas','Nebraska','Oklahoma','Colorado','Utah','Nevada','Oregon','Washington','Idaho','New York','New Jersey','Pennsylvania','Massachusetts','Connecticut','Virginia','Maryland','Other'];
 const regions=['Nationwide','Northeast','Southeast','Midwest','Southwest','West','Pacific Northwest','Mid-Atlantic'];
 const encode=v=>String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
@@ -58,12 +58,13 @@ function closeAccountMenu(){
   if(toggle)toggle.setAttribute('aria-expanded','false');
 }
 function syncAccountMenu(){
-  marketAccountMenu.hidden=!currentUser;
+  const verified=Boolean(currentUser&&m.verifiedUserId===currentUser.id);
+  marketAccountMenu.hidden=!verified;
   for(const [id,targetRole] of [['market-portal-org','org'],['market-portal-brand','brand']]){
     const button=marketAccountMenu.querySelector('#'+id);
-    if(button)button.hidden=!currentUser||!m.masterAccess||role===targetRole;
+    if(button)button.hidden=!verified||!m.masterAccess||role===targetRole;
   }
-  if(!currentUser)closeAccountMenu();
+  if(!verified)closeAccountMenu();
 }
 function switchMasterPortal(nextRole){
   if(!currentUser||!m.masterAccess||!nav[nextRole])return;
@@ -119,7 +120,7 @@ logoutAccount=async function(){
  try{
   const {error}=await auth().auth.signOut({scope:'local'});
   if(error){say('Could not confirm logout: '+error.message+'. Please try again.');return false}
-  currentUser=null;requestedRole=null;m.authRole=null;m.masterAccess=false;m.loaded=false;m.loading=false;
+  currentUser=null;requestedRole=null;m.authRole=null;m.masterAccess=false;m.verifiedUserId=null;m.loaded=false;m.loading=false;
   m.chapters=[];m.brands=[];m.proposals=[];m.events=[];m.threads=[];m.messages=[];m.activeThread=null;
   interest.clear();previewNote='';role='org';tab='Overview';
   Object.assign(data.org,{name:'',university:'',members:0,charity:'',contactName:'',phone:'',email:'',region:'',organizationType:'Sorority'});
@@ -186,6 +187,7 @@ readAccount=async function(){
  if(currentUser?.id!==user?.id)return;
  m.authRole=savedRole;
  m.masterAccess=masterAccess;
+ m.verifiedUserId=user.id;
  await oldRead();
  if(currentUser?.id===user?.id){
    m.authRole=savedRole||role;
@@ -205,6 +207,7 @@ function showRoleSwitch(nextRole){
 }
 start=function(r,options={}){
  if(!nav[r])return;
+ if(currentUser&&m.verifiedUserId!==currentUser.id){console.info('Waiting for account role verification');return}
  if(currentUser&&m.authRole&&r!==m.authRole&&!m.masterAccess){showRoleSwitch(r);return}
  oldStart(r,options);if(currentUser)fetchAll();
 };
