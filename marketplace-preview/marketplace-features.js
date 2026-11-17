@@ -30,7 +30,7 @@ brandArt=function(b){
   const url='https://www.google.com/s2/favicons?domain='+encodeURIComponent(domain)+'&sz=256';
   return '<div class="product-art simple"><img src="'+url+'" alt="'+name+' brand mark" loading="lazy" referrerpolicy="no-referrer" style="width:104px;height:104px;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.08))" onerror="this.outerHTML=\x27<span class=brand-logo-word>'+name.replace(/'/g,'&#39;')+'</span>\x27"></div>';
 };
-const m={chapters:[],brands:[],events:[],proposals:[],threads:[],messages:[],activeThread:null,loading:false,loaded:false,eventChoice:null,authRole:null};
+const m={chapters:[],brands:[],events:[],proposals:[],threads:[],messages:[],activeThread:null,loading:false,loaded:false,eventChoice:null,authRole:null,masterAccess:false,verifiedUserId:null};
 const states=['Arizona','California','Texas','Florida','Georgia','Alabama','North Carolina','South Carolina','Tennessee','Mississippi','Louisiana','Kentucky','Michigan','Ohio','Indiana','Illinois','Wisconsin','Minnesota','Iowa','Missouri','Kansas','Nebraska','Oklahoma','Colorado','Utah','Nevada','Oregon','Washington','Idaho','New York','New Jersey','Pennsylvania','Massachusetts','Connecticut','Virginia','Maryland','Other'];
 const regions=['Nationwide','Northeast','Southeast','Midwest','Southwest','West','Pacific Northwest','Mid-Atlantic'];
 const encode=v=>String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
@@ -38,7 +38,7 @@ const opt=(items,value)=>items.map(x=>'<option value="'+encode(x)+'" '+(x===valu
 const dbClient=()=>auth();
 function say(t){let e=document.getElementById('marketplaceStatus');if(!e){e=document.createElement('div');e.id='marketplaceStatus';e.className='market-status';document.getElementById('page')?.prepend(e)}e.textContent=t; e.hidden=false}
 function showError(error,prefix='Could not complete request'){say(prefix+': '+(error?.message||'Please try again.'));console.warn(prefix,error?.code||error?.message||'unknown')}
-function currentRole(){return m.authRole||role}
+function currentRole(){return m.masterAccess?role:(m.authRole||role)}
 const oldOrgPage=orgPage,oldBrandPage=brandPage,oldSave=saveAccount,oldRead=readAccount,oldNavigate=navigate,oldStart=start,oldRender=render,oldLogout=logoutAccount,oldIcon=iconFor;
 if(!nav.org.includes('Messages'))nav.org.splice(nav.org.indexOf('Campaigns'),0,'Messages');
 if(!nav.brand.includes('Proposals'))nav.brand.splice(nav.brand.indexOf('Campaigns'),0,'Proposals');
@@ -51,15 +51,27 @@ const marketAccountMenu=document.createElement('div');
 marketAccountMenu.id='market-account-menu';
 marketAccountMenu.className='market-account-menu';
 marketAccountMenu.hidden=true;
-marketAccountMenu.innerHTML='<button type="button" id="market-account-toggle" class="market-account-toggle" aria-label="Account options" aria-haspopup="menu" aria-controls="market-account-options" aria-expanded="false" title="Account options"><span class="market-account-dots" aria-hidden="true"><i></i><i></i><i></i></span></button><div id="market-account-options" class="market-account-options" role="menu" hidden><button type="button" role="menuitem" id="market-account-logout">↪ Log out</button></div>';
+marketAccountMenu.innerHTML='<button type="button" id="market-account-toggle" class="market-account-toggle" aria-label="Account options" aria-haspopup="menu" aria-controls="market-account-options" aria-expanded="false" title="Account options"><span class="market-account-dots" aria-hidden="true"><i></i><i></i><i></i></span></button><div id="market-account-options" class="market-account-options" role="menu" hidden><button type="button" role="menuitem" class="market-account-portal" id="market-portal-org" hidden>⇄ Organization portal</button><button type="button" role="menuitem" class="market-account-portal" id="market-portal-brand" hidden>⇄ Brand portal</button><button type="button" role="menuitem" id="market-account-logout">↪ Log out</button></div>';
 function closeAccountMenu(){
   const popup=document.getElementById('market-account-options'),toggle=document.getElementById('market-account-toggle');
   if(popup)popup.hidden=true;
   if(toggle)toggle.setAttribute('aria-expanded','false');
 }
 function syncAccountMenu(){
-  marketAccountMenu.hidden=!currentUser;
-  if(!currentUser)closeAccountMenu();
+  const verified=Boolean(currentUser&&m.verifiedUserId===currentUser.id);
+  marketAccountMenu.hidden=!verified;
+  for(const [id,targetRole] of [['market-portal-org','org'],['market-portal-brand','brand']]){
+    const button=marketAccountMenu.querySelector('#'+id);
+    if(button)button.hidden=!verified||!m.masterAccess||role===targetRole;
+  }
+  if(!verified)closeAccountMenu();
+}
+function switchMasterPortal(nextRole){
+  if(!currentUser||!m.masterAccess||!nav[nextRole])return;
+  requestedRole=null;
+  closeAccountMenu();
+  start(nextRole,{history:'replace'});
+  syncAccountMenu();
 }
 if(marketTop){
   const actions=document.createElement('div');
@@ -83,6 +95,8 @@ if(marketTop){
     closeAccountMenu();
     logoutAccount();
   });
+  marketAccountMenu.querySelector('#market-portal-org').addEventListener('click',()=>switchMasterPortal('org'));
+  marketAccountMenu.querySelector('#market-portal-brand').addEventListener('click',()=>switchMasterPortal('brand'));
   document.addEventListener('click',e=>{if(!marketAccountMenu.contains(e.target))closeAccountMenu()});
   document.addEventListener('keydown',e=>{
     if(e.key==='Escape'&&!popup.hidden){closeAccountMenu();toggle.focus()}
@@ -106,7 +120,7 @@ logoutAccount=async function(){
  try{
   const {error}=await auth().auth.signOut({scope:'local'});
   if(error){say('Could not confirm logout: '+error.message+'. Please try again.');return false}
-  currentUser=null;requestedRole=null;m.authRole=null;m.loaded=false;m.loading=false;
+  currentUser=null;requestedRole=null;m.authRole=null;m.masterAccess=false;m.verifiedUserId=null;m.loaded=false;m.loading=false;
   m.chapters=[];m.brands=[];m.proposals=[];m.events=[];m.threads=[];m.messages=[];m.activeThread=null;
   interest.clear();previewNote='';role='org';tab='Overview';
   Object.assign(data.org,{name:'',university:'',members:0,charity:'',contactName:'',phone:'',email:'',region:'',organizationType:'Sorority'});
@@ -145,7 +159,7 @@ async function fetchAll(){
 }
 async function publishDirectory(){
  if(!currentUser)return;
- const type=m.authRole||role;
+ const type=m.masterAccess?role:(m.authRole||role);
  if(type==='org'){
   if(!data.org.name?.trim()||!data.org.university?.trim())return;
   const p={user_id:currentUser.id,organization_name:data.org.name.trim(),university:data.org.university.trim(),members:Number(data.org.members)||null,region:data.org.region||null,charity:data.org.charity||'',organization_type:data.org.organizationType||'Organization',is_visible:true,updated_at:new Date().toISOString()};
@@ -158,13 +172,30 @@ async function publishDirectory(){
  }
 }
 readAccount=async function(){
- const user=currentUser;let savedRole=null;
- if(user){const r=await dbClient().from('sfg_marketplace_profiles').select('account_type').eq('user_id',user.id).maybeSingle();if(!r.error)savedRole=r.data?.account_type||null}
+ const user=currentUser;let savedRole=null,masterAccess=false;
+ if(user){
+  const [profile,access]=await Promise.all([
+   dbClient().from('sfg_marketplace_profiles').select('account_type').eq('user_id',user.id).maybeSingle(),
+   dbClient().from('sfg_marketplace_role_access').select('enabled').eq('user_id',user.id).maybeSingle()
+  ]);
+  if(!profile.error)savedRole=profile.data?.account_type||null;
+  // Only the read-only, RLS-protected server grant enables cross-portal access.
+  // Never trust email strings or user-editable profile claims in browser state.
+  if(!access.error)masterAccess=access.data?.enabled===true;
+  else console.warn('Marketplace role access could not be checked',access.error?.code||'unavailable');
+ }
+ if(currentUser?.id!==user?.id)return;
  m.authRole=savedRole;
+ m.masterAccess=masterAccess;
+ m.verifiedUserId=user.id;
  await oldRead();
- if(currentUser){
+ if(currentUser?.id===user?.id){
    m.authRole=savedRole||role;
-   if(m.authRole==='org'){const r=await dbClient().from('sfg_marketplace_chapters').select('region,organization_type').eq('user_id',currentUser.id).maybeSingle();if(r.data){data.org.region=r.data.region||'';data.org.organizationType=r.data.organization_type||'Organization'}}
+   if(m.authRole==='org'||m.masterAccess){
+    const r=await dbClient().from('sfg_marketplace_chapters').select('region,organization_type').eq('user_id',currentUser.id).maybeSingle();
+    if(r.data){data.org.region=r.data.region||'';data.org.organizationType=r.data.organization_type||'Organization'}
+   }
+   syncAccountMenu();
    fetchAll();
  }
 };
@@ -176,10 +207,12 @@ function showRoleSwitch(nextRole){
 }
 start=function(r,options={}){
  if(!nav[r])return;
- if(currentUser&&m.authRole&&r!==m.authRole){showRoleSwitch(r);return}
+ if(currentUser&&m.verifiedUserId!==currentUser.id){console.info('Waiting for account role verification');return}
+ if(currentUser&&m.authRole&&r!==m.authRole&&!m.masterAccess){showRoleSwitch(r);return}
  oldStart(r,options);if(currentUser)fetchAll();
 };
 async function switchAccount(nextRole){
+ if(currentUser&&m.masterAccess){switchMasterPortal(nextRole);return}
  await logoutAccount();
  requestedRole=nextRole;
  signMessage('Sign in or create a '+(nextRole==='brand'?'Brand':'Organization')+' account.');
