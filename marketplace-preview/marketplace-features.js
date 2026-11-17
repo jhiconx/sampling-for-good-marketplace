@@ -229,6 +229,122 @@ function mountAmbassadorEntry(){
  callout.textContent='Become A Campus Brand Ambassador →';
  document.body.appendChild(callout);
 }
+
+// SFG calendar and authentication repair 2026-11-17.
+// The Overview "Edit date" labels were non-clickable spans and never showed saved dates.
+const overviewDates=[['Philanthropy Week','Chapter date pending'],['Bid Day','Chapter date pending'],['Parents Weekend','School date pending'],['Work Week','School date pending']];
+events=function(){
+ const mine=m.events.filter(e=>e.chapter_user_id===currentUser?.id);
+ return overviewDates.map(([name,pending])=>{
+  const found=mine.find(e=>e.event_name===name);
+  let display=pending;
+  if(found?.event_date&&/^\d{4}-\d{2}-\d{2}$/.test(found.event_date))display=new Date(found.event_date+'T12:00:00').toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});
+  return '<div class="event"><div>'+encode(name)+'<br><small>'+encode(display)+'</small></div><button type="button" class="tag sfg-event-edit" data-sfg-event="'+encode(name)+'" aria-label="Edit date for '+encode(name)+'">Edit date</button></div>';
+ }).join('');
+};
+document.addEventListener('click',e=>{
+ const b=e.target.closest?.('button[data-sfg-event]');
+ if(!b)return;
+ e.preventDefault();
+ if(!currentUser){requestedRole='org';openSignIn();signMessage('Sign in to edit your chapter calendar.');return}
+ window.sfgMarket.editEvent(b.getAttribute('data-sfg-event'));
+});
+const repairStyle=document.createElement('style');
+repairStyle.textContent=[
+ '.sfg-event-edit{font:inherit;color:#9552ce;background:#faf5ff;border:1px solid #ead8f6;border-radius:999px;cursor:pointer;padding:8px 15px}',
+ '.sfg-event-edit:hover,.sfg-event-edit:focus-visible{background:#f2e3fb;outline:2px solid #b98add;outline-offset:2px}',
+ '#signin .auth-msg:not(:empty){position:fixed;top:16px;left:50%;transform:translateX(-50%);display:block!important;z-index:10010;width:min(480px,calc(100vw - 32px));min-height:0;margin:0;padding:13px 17px;background:#fff;border:1px solid #ad78e6;border-radius:14px;box-shadow:0 10px 35px #24112e35;font:700 14px/1.5 Manrope,sans-serif;color:#51366d;text-align:center;pointer-events:none}',
+ '#signin .auth-msg[data-state="error"]{border-color:#d05a75;color:#9f2745}'
+].join('\n');
+document.head.appendChild(repairStyle);
+// The original status text appeared below the form, often outside the visible area.
+signMessage=function(message){
+ const el=document.getElementById('signin-msg');
+ if(!el)return;
+ el.textContent=String(message||'');
+ el.setAttribute('role','status');
+ el.setAttribute('aria-live','polite');
+ el.dataset.state=/invalid|incorrect|failed|error|could not|unavailable|try again|not confirmed/i.test(String(message))?'error':'info';
+};
+let authBusy=false;
+async function withAuthButton(btn,label,task){
+ if(authBusy)return;
+ authBusy=true;
+ const original=btn?.textContent;
+ if(btn){btn.disabled=true;btn.textContent=label}
+ try{await task()}
+ catch(e){signMessage('Request could not be completed: '+(e?.message||'Please try again.'))}
+ finally{if(btn){btn.disabled=false;btn.textContent=original}authBusy=false}
+}
+// Deduplicate profile loading when sign-in and the Supabase observer fire together.
+const originalReadAccount=readAccount;
+let accountLoad=null;
+readAccount=async function(){
+ if(accountLoad)return accountLoad;
+ const p=Promise.resolve().then(()=>originalReadAccount());
+ accountLoad=p;
+ try{return await p}finally{if(accountLoad===p)accountLoad=null}
+};
+passwordSignIn=async function(e){
+ e?.preventDefault?.();
+ const email=document.getElementById('signin-email')?.value.trim(),password=document.getElementById('signin-password')?.value||'';
+ if(!email||!password){signMessage('Enter your email and password.');return}
+ await withAuthButton(document.querySelector('#signin button[type="submit"]'),'Signing in…',async()=>{
+  signMessage('Signing in…');
+  const {data:result,error}=await auth().auth.signInWithPassword({email,password});
+  if(error)throw error;
+  if(!result?.user){signMessage('Sign in could not be confirmed. Please try again.');return}
+  currentUser=result.user;
+  signMessage('Signed in. Loading your saved account…');
+  await readAccount();
+ });
+};
+registerAccount=async function(){
+ const input=document.getElementById('signin-email'),email=input?.value.trim()||'',password=document.getElementById('signin-password')?.value||'';
+ if(currentUser){signMessage('Already signed in. Sign out before creating a different account.');return}
+ if(!email||!input.checkValidity()||password.length<8){signMessage('Enter a valid email and a password of at least 8 characters.');return}
+ await withAuthButton(document.querySelector('#signin button[onclick="registerAccount()"]'),'Creating account…',async()=>{
+  signMessage('Creating account…');
+  const {data:result,error}=await auth().auth.signUp({email,password,options:{emailRedirectTo:authRedirectUrl()}});
+  if(error){
+   if(/already registered|already exists/i.test(error.message||'')){signMessage('An account may already exist for this email. Use Sign in or Forgot password.');return}
+   throw error;
+  }
+  if(result?.session?.user){
+   currentUser=result.session.user;signMessage('Account created. Loading your portal…');await readAccount();
+  }else signMessage('Request received. If this email is new, check your inbox for confirmation. If already registered, use Sign in or Forgot password.');
+ });
+};
+resetPassword=async function(){
+ const input=document.getElementById('signin-email'),email=input?.value.trim()||'';
+ if(!email||!input.checkValidity()){signMessage('Enter a valid email address above first.');return}
+ await withAuthButton(document.querySelector('#signin button[onclick="resetPassword()"]'),'Sending link…',async()=>{
+  signMessage('Requesting a password-reset email…');
+  const {error}=await auth().auth.resetPasswordForEmail(email,{redirectTo:authRedirectUrl()});
+  if(error)throw error;
+  signMessage('Password reset requested. If an account exists, check your inbox and spam folder for the reset link.');
+ });
+};
+window.sfgMarket.saveEvent=async function(){
+ const name=document.getElementById('mp-event-name')?.value.trim(),date=document.getElementById('mp-event-date')?.value;
+ if(!currentUser||!name||!date){say('Enter an event name and date.');return}
+ const button=document.querySelector('#modalbody button[type="submit"]');
+ if(button?.disabled)return;
+ if(button){button.disabled=true;button.textContent='Saving…'}
+ try{
+  const {data:saved,error}=await dbClient().from('sfg_marketplace_events').upsert({chapter_user_id:currentUser.id,event_name:name,event_date:date},{onConflict:'chapter_user_id,event_name'}).select('id,chapter_user_id,event_name,event_date').single();
+  if(error)throw error;
+  m.events=m.events.filter(e=>!(e.chapter_user_id===currentUser.id&&e.event_name===name));
+  m.events.push(saved);
+  closeModal();render();say(name+' saved for '+new Date(date+'T12:00:00').toLocaleDateString()+'.');
+  await fetchAll();
+ }catch(e){
+  let el=document.getElementById('mp-event-feedback');
+  if(!el){el=document.createElement('p');el.id='mp-event-feedback';el.setAttribute('role','alert');document.getElementById('modalbody')?.appendChild(el)}
+  el.textContent='Could not save date: '+(e?.message||'Please try again.');
+ }finally{if(button){button.disabled=false;button.textContent='Save date'}}
+};
+
 mountAmbassadorEntry();
 initializeAccount();
 })();
