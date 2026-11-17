@@ -32,3 +32,17 @@
 .market-composer .limebtn{border-radius:12px;background:linear-gradient(105deg,#e355c9,#905ff6,#3489ff);color:#fff}
 @media(max-width:800px){.market-messaging{grid-template-columns:1fr}.market-peers{max-height:260px;overflow-y:auto}.market-row-actions{flex-direction:column}}
 .market-mobile-logout{border:1px solid #d9c7ee!important;border-radius:12px!important;background:#fff!important;color:#7545c3!important;font-weight:800!important}
+
+/* Signed-in three-dot account menu in the shared Marketplace header. */
+.market-account-actions{display:flex;align-items:center;gap:10px;margin-left:auto}
+.market-account-menu{position:relative;flex:none}
+#market-account-menu[hidden],#market-account-options[hidden]{display:none!important}
+.top .market-account-toggle{width:44px;height:44px;min-width:44px;padding:0;display:grid;place-items:center;border:1px solid #e7e1ed;border-radius:50%;background:#fff;color:#332b3a}
+.top .market-account-toggle:hover,.top .market-account-toggle[aria-expanded="true"]{background:#f3ecff;border-color:#c9b4ec}
+.market-account-dots{display:flex;flex-direction:column;align-items:center;gap:4px}
+.market-account-dots i{display:block;width:5px;height:5px;border-radius:50%;background:currentColor}
+.market-account-options{position:absolute;right:0;top:calc(100% + 9px);z-index:110;min-width:172px;padding:7px;border-radius:14px;border:1px solid #e9e0ee;background:#fff;box-shadow:0 15px 32px rgba(37,26,52,.16)}
+.top #market-account-logout{width:100%;display:flex;align-items:center;text-align:left;background:transparent;border:0;border-radius:9px;padding:12px 14px;font:700 14px Manrope,sans-serif;color:#3b2a4c;white-space:nowrap}
+.top #market-account-logout:hover,.top #market-account-logout:focus-visible{background:#f2eaff;color:#6736ab}
+.top #market-account-logout:disabled{opacity:.6;cursor:wait}
+@media(max-width:600px){.top{padding-left:4%;padding-right:4%}.top .brand{font-size:15px}.market-account-actions{gap:6px}.market-account-actions>button{font-size:11px;padding:8px 11px}.top .market-account-toggle{width:40px;min-width:40px;height:40px}}

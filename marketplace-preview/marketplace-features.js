@@ -44,19 +44,86 @@ if(!nav.org.includes('Messages'))nav.org.splice(nav.org.indexOf('Campaigns'),0,'
 if(!nav.brand.includes('Proposals'))nav.brand.splice(nav.brand.indexOf('Campaigns'),0,'Proposals');
 if(!nav.brand.includes('Messages'))nav.brand.splice(nav.brand.indexOf('Campaigns'),0,'Messages');
 iconFor=function(t){return t==='Messages'?'✉':oldIcon(t)};
+
+// Signed-in account menu, shared by every Organization and Brand dashboard view.
+const marketTop=document.querySelector('header.top');
+const marketAccountMenu=document.createElement('div');
+marketAccountMenu.id='market-account-menu';
+marketAccountMenu.className='market-account-menu';
+marketAccountMenu.hidden=true;
+marketAccountMenu.innerHTML='<button type="button" id="market-account-toggle" class="market-account-toggle" aria-label="Account options" aria-haspopup="menu" aria-controls="market-account-options" aria-expanded="false" title="Account options"><span class="market-account-dots" aria-hidden="true"><i></i><i></i><i></i></span></button><div id="market-account-options" class="market-account-options" role="menu" hidden><button type="button" role="menuitem" id="market-account-logout">↪ Log out</button></div>';
+function closeAccountMenu(){
+  const popup=document.getElementById('market-account-options'),toggle=document.getElementById('market-account-toggle');
+  if(popup)popup.hidden=true;
+  if(toggle)toggle.setAttribute('aria-expanded','false');
+}
+function syncAccountMenu(){
+  marketAccountMenu.hidden=!currentUser;
+  if(!currentUser)closeAccountMenu();
+}
+if(marketTop){
+  const actions=document.createElement('div');
+  actions.className='market-account-actions';
+  const choosePortal=marketTop.querySelector('button[onclick="home()"]');
+  if(choosePortal)actions.appendChild(choosePortal);
+  actions.appendChild(marketAccountMenu);
+  marketTop.appendChild(actions);
+  const toggle=marketAccountMenu.querySelector('#market-account-toggle');
+  const popup=marketAccountMenu.querySelector('#market-account-options');
+  toggle.addEventListener('click',()=>{
+    if(!currentUser)return;
+    const opening=popup.hidden;
+    closeAccountMenu();
+    if(opening){popup.hidden=false;toggle.setAttribute('aria-expanded','true')}
+  });
+  toggle.addEventListener('keydown',e=>{
+    if(e.key==='ArrowDown'){e.preventDefault();popup.hidden=false;toggle.setAttribute('aria-expanded','true');popup.querySelector('button')?.focus()}
+  });
+  marketAccountMenu.querySelector('#market-account-logout').addEventListener('click',()=>{
+    closeAccountMenu();
+    logoutAccount();
+  });
+  document.addEventListener('click',e=>{if(!marketAccountMenu.contains(e.target))closeAccountMenu()});
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'&&!popup.hidden){closeAccountMenu();toggle.focus()}
+  });
+}
+const originalHomeForAccountMenu=home;
+home=function(options={}){
+  const result=originalHomeForAccountMenu(options);
+  syncAccountMenu();
+  return result;
+};
+
 const signOutBtn=document.createElement('button');signOutBtn.className='nav market-logout';signOutBtn.textContent='↪ Log out';signOutBtn.onclick=()=>logoutAccount();
 const sidebar=document.querySelector('.sidebar');if(sidebar)sidebar.append(signOutBtn);
+let accountLogoutBusy=false;
 logoutAccount=async function(){
- const {error}=await auth().auth.signOut();
- if(error){signMessage(error.message);openSignIn();return}
- currentUser=null;requestedRole=null;m.authRole=null;m.loaded=false;m.loading=false;
- m.chapters=[];m.brands=[];m.proposals=[];m.events=[];m.threads=[];m.messages=[];m.activeThread=null;
- interest.clear();previewNote='';role='org';tab='Overview';
- Object.assign(data.org,{name:'',university:'',members:0,charity:'',contactName:'',phone:'',email:'',region:'',organizationType:'Sorority'});
- Object.assign(data.brand,{name:'',category:'',region:'Nationwide',members:'Any size'});
- const email=document.getElementById('signin-email'),password=document.getElementById('signin-password');
- if(email)email.value='';if(password)password.value='';
- closeModal();home({history:'replace'});signMessage('Signed out. Sign in or create an account.');openSignIn();
+ if(accountLogoutBusy)return false;
+ accountLogoutBusy=true;
+ const menuLogout=document.getElementById('market-account-logout');
+ if(menuLogout)menuLogout.disabled=true;
+ try{
+  const {error}=await auth().auth.signOut({scope:'local'});
+  if(error){say('Could not confirm logout: '+error.message+'. Please try again.');return false}
+  currentUser=null;requestedRole=null;m.authRole=null;m.loaded=false;m.loading=false;
+  m.chapters=[];m.brands=[];m.proposals=[];m.events=[];m.threads=[];m.messages=[];m.activeThread=null;
+  interest.clear();previewNote='';role='org';tab='Overview';
+  Object.assign(data.org,{name:'',university:'',members:0,charity:'',contactName:'',phone:'',email:'',region:'',organizationType:'Sorority'});
+  Object.assign(data.brand,{name:'',category:'',region:'Nationwide',members:'Any size'});
+  const email=document.getElementById('signin-email'),password=document.getElementById('signin-password');
+  if(email)email.value='';if(password)password.value='';
+  closeAccountMenu();
+  closeModal();home({history:'replace'});signMessage('Signed out. Sign in or create an account.');openSignIn();
+  return true;
+ }catch(e){
+  say('Could not log out: '+(e?.message||'Please try again.'));
+  return false;
+ }finally{
+  if(menuLogout)menuLogout.disabled=false;
+  accountLogoutBusy=false;
+  syncAccountMenu();
+ }
 };
 async function fetchAll(){
  if(!currentUser||m.loading)return;
@@ -209,7 +276,7 @@ async function sendMessage(){const input=document.getElementById('mp-message');c
 orgPage=function(){switch(tab){case 'Events':return eventView();case 'Proposals':return proposalView();case 'Messages':return messagesView();case 'Profile':return orgSettings();default:return oldOrgPage()}};
 brandPage=function(){switch(tab){case 'Find Chapters':return chaptersView();case 'Create Proposal':return proposalBuilder();case 'Proposals':return proposalView();case 'Messages':return messagesView();case 'Profile':return brandSettings();default:return oldBrandPage()}};
 const baseRender=render;
-render=function(){baseRender();const bar=document.getElementById('mobilebar');if(bar&&!bar.querySelector('.market-mobile-logout')){const b=document.createElement('button');b.className='market-mobile-logout';b.textContent='↪ Log out';b.onclick=()=>logoutAccount();bar.append(b)}};
+render=function(){baseRender();const bar=document.getElementById('mobilebar');if(bar&&!bar.querySelector('.market-mobile-logout')){const b=document.createElement('button');b.className='market-mobile-logout';b.textContent='↪ Log out';b.onclick=()=>logoutAccount();bar.append(b)}syncAccountMenu()};
 window.sfgMarket={switchAccount,saveOrgProfile,saveBrandProfile,filterChapters,editEvent,saveEvent,sendProposal,setProposalStatus,openThreadWith,startConversation,chooseThread,refreshMessages,sendMessage};
 window.setInterval(()=>{if(document.visibilityState==='visible'&&currentUser&&tab==='Messages'&&!m.loading)fetchAll()},15000);
 function mountAmbassadorEntry(){
@@ -345,6 +412,8 @@ window.sfgMarket.saveEvent=async function(){
  }finally{if(button){button.disabled=false;button.textContent='Save date'}}
 };
 
+const baseInitializeAccount=initializeAccount;
+initializeAccount=async function(){try{return await baseInitializeAccount()}finally{syncAccountMenu()}};
 mountAmbassadorEntry();
 initializeAccount();
 })();
