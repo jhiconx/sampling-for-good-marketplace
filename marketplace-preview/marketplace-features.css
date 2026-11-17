@@ -42,6 +42,12 @@
 .market-account-dots{display:flex;flex-direction:column;align-items:center;gap:4px}
 .market-account-dots i{display:block;width:5px;height:5px;border-radius:50%;background:currentColor}
 .market-account-options{position:absolute;right:0;top:calc(100% + 9px);z-index:110;min-width:172px;padding:7px;border-radius:14px;border:1px solid #e9e0ee;background:#fff;box-shadow:0 15px 32px rgba(37,26,52,.16)}
+/* Master access: two portal choices inside the existing three-dot menu. */
+.top .market-account-portal{width:100%;display:flex;align-items:center;text-align:left;background:transparent;border:0;border-radius:9px;padding:12px 14px;font:700 14px Manrope,sans-serif;color:#66419e;white-space:nowrap}
+.top .market-account-portal[hidden]{display:none!important}
+.top .market-account-portal:hover,.top .market-account-portal:focus-visible{background:#f2eaff;color:#6736ab}
+.top .market-account-portal:not([hidden])+#market-account-logout{border-top:1px solid #eee4f2;border-radius:0}
+.market-account-options{min-width:210px}
 .top #market-account-logout{width:100%;display:flex;align-items:center;text-align:left;background:transparent;border:0;border-radius:9px;padding:12px 14px;font:700 14px Manrope,sans-serif;color:#3b2a4c;white-space:nowrap}
 .top #market-account-logout:hover,.top #market-account-logout:focus-visible{background:#f2eaff;color:#6736ab}
 .top #market-account-logout:disabled{opacity:.6;cursor:wait}
