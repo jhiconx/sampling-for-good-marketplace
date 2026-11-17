@@ -1,6 +1,35 @@
 /* Sampling For Good marketplace extensions — secure Supabase-backed features.
    No private contact details are loaded into public discovery cards. */
 (() => {
+// Keep the public brand offer catalog aligned with the approved Marketplace list.
+const hiddenOfferNames=['Mighty Spark Chicken Snack Sticks','Reed’s Coffee','Claude 1 Month','Dove Baby','Bumble Bee','Mr. Pibb Zero Sugar'];
+for(const name of hiddenOfferNames){
+  const i=brands.findIndex(b=>b.name===name);
+  if(i!==-1)brands.splice(i,1);
+  interest.delete(name);
+  delete brandIds[name];
+}
+// Display authentic brand-site marks instead of hand-drawn imitation packaging.
+// Brand-site favicons are fetched from the brands' own domains via Google's favicon endpoint.
+const officialBrandDomains={
+  'Celsius':'celsius.com',
+  'Alani Nu':'alaninu.com',
+  'Liquid Death':'liquiddeath.com',
+  'Red Bull':'redbull.com',
+  'Olipop':'drinkolipop.com',
+  'Martie Free Item':'martie.com',
+  'Poppi':'drinkpoppi.com',
+  'e.l.f.':'elfcosmetics.com',
+  'Starface':'starface.world'
+};
+const originalBrandArt=brandArt;
+brandArt=function(b){
+  const domain=officialBrandDomains[b.name];
+  if(!domain)return originalBrandArt(b);
+  const name=String(b.name).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+  const url='https://www.google.com/s2/favicons?domain='+encodeURIComponent(domain)+'&sz=256';
+  return '<div class="product-art simple"><img src="'+url+'" alt="'+name+' brand mark" loading="lazy" referrerpolicy="no-referrer" style="width:104px;height:104px;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.08))" onerror="this.outerHTML=\x27<span class=brand-logo-word>'+name.replace(/'/g,'&#39;')+'</span>\x27"></div>';
+};
 const m={chapters:[],brands:[],events:[],proposals:[],threads:[],messages:[],activeThread:null,loading:false,loaded:false,eventChoice:null,authRole:null};
 const states=['Arizona','California','Texas','Florida','Georgia','Alabama','North Carolina','South Carolina','Tennessee','Mississippi','Louisiana','Kentucky','Michigan','Ohio','Indiana','Illinois','Wisconsin','Minnesota','Iowa','Missouri','Kansas','Nebraska','Oklahoma','Colorado','Utah','Nevada','Oregon','Washington','Idaho','New York','New Jersey','Pennsylvania','Massachusetts','Connecticut','Virginia','Maryland','Other'];
 const regions=['Nationwide','Northeast','Southeast','Midwest','Southwest','West','Pacific Northwest','Mid-Atlantic'];
