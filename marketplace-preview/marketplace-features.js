@@ -284,7 +284,7 @@ function mountAmbassadorEntry(){
  if(!grid||document.getElementById('ambassador-home-callout'))return;
  const style=document.createElement('style');
  style.textContent=`
- .ambassador-home-callout{position:fixed;right:22px;bottom:22px;z-index:1000;max-width:min(320px,calc(100vw - 32px));display:flex;align-items:center;gap:10px;padding:15px 19px;background:linear-gradient(105deg,#e252b2,#8756e8,#5380fa);border-radius:18px;box-shadow:0 10px 28px #4222794d;color:#fff!important;text-decoration:none;font:800 14px/1.35 Manrope,sans-serif;transition:transform .2s,box-shadow .2s}
+ .ambassador-home-callout{position:fixed;right:22px;bottom:22px;z-index:100;max-width:min(320px,calc(100vw - 32px));display:flex;align-items:center;gap:10px;padding:15px 19px;background:linear-gradient(105deg,#e252b2,#8756e8,#5380fa);border-radius:18px;box-shadow:0 10px 28px #4222794d;color:#fff!important;text-decoration:none;font:800 14px/1.35 Manrope,sans-serif;transition:transform .2s,box-shadow .2s}
  .ambassador-home-callout:hover,.ambassador-home-callout:focus-visible{transform:translateY(-3px);box-shadow:0 14px 32px #42227966}
  @media(max-width:700px){.ambassador-home-callout{right:12px;bottom:78px;max-width:calc(100vw - 24px);font-size:12px;padding:11px 14px}}
  `;
@@ -320,7 +320,7 @@ const repairStyle=document.createElement('style');
 repairStyle.textContent=[
  '.sfg-event-edit{font:inherit;color:#9552ce;background:#faf5ff;border:1px solid #ead8f6;border-radius:999px;cursor:pointer;padding:8px 15px}',
  '.sfg-event-edit:hover,.sfg-event-edit:focus-visible{background:#f2e3fb;outline:2px solid #b98add;outline-offset:2px}',
- '#signin .auth-msg:not(:empty){position:fixed;top:16px;left:50%;transform:translateX(-50%);display:block!important;z-index:10010;width:min(480px,calc(100vw - 32px));min-height:0;margin:0;padding:13px 17px;background:#fff;border:1px solid #ad78e6;border-radius:14px;box-shadow:0 10px 35px #24112e35;font:700 14px/1.5 Manrope,sans-serif;color:#51366d;text-align:center;pointer-events:none}',
+ '#signin .auth-msg:not(:empty){position:static;display:block!important;transform:none;width:100%;min-height:0;margin:12px 0;padding:12px 14px;background:#f8f3ff;border:1px solid #ad78e6;border-radius:12px;font:700 13px/1.5 Manrope,sans-serif;color:#51366d;text-align:left;pointer-events:auto;overflow-wrap:anywhere}',
  '#signin .auth-msg[data-state="error"]{border-color:#d05a75;color:#9f2745}'
 ].join('\n');
 document.head.appendChild(repairStyle);
@@ -412,8 +412,163 @@ window.sfgMarket.saveEvent=async function(){
  }finally{if(button){button.disabled=false;button.textContent='Save date'}}
 };
 
-const baseInitializeAccount=initializeAccount;
-initializeAccount=async function(){try{return await baseInitializeAccount()}finally{syncAccountMenu()}};
+// Password recovery uses an inline form, never a browser prompt. Subscribe
+// before getSession can consume the password-recovery authentication event.
+const sfgSigninBox=document.querySelector('#signin .signin-box');
+const sfgLoginForm=sfgSigninBox.querySelector('form');
+const sfgSigninStatus=document.getElementById('signin-msg');
+sfgLoginForm.noValidate=true;
+sfgLoginForm.before(sfgSigninStatus);
+document.getElementById('signin').setAttribute('role','dialog');
+document.getElementById('signin').setAttribute('aria-modal','true');
+const sfgCloseSignIn=sfgSigninBox.querySelector(':scope > button');
+sfgCloseSignIn.setAttribute('aria-label','Close sign-in');
+const sfgRecoveryPanel=document.createElement('section');
+sfgRecoveryPanel.id='sfg-password-recovery';
+sfgRecoveryPanel.setAttribute('aria-label','Create new password');
+sfgRecoveryPanel.hidden=true;
+sfgRecoveryPanel.innerHTML=
+ '<h2>Create your new password</h2>'+
+ '<p class="auth-note">Choose a new password to get back into Sampling For Good.</p>'+
+ '<form id="sfg-recovery-form" novalidate>'+
+ '<label for="sfg-new-password">New password</label>'+
+ '<input id="sfg-new-password" type="password" autocomplete="new-password" minlength="8" required>'+
+ '<label for="sfg-confirm-password">Confirm new password</label>'+
+ '<input id="sfg-confirm-password" type="password" autocomplete="new-password" minlength="8" required>'+
+ '<button type="submit">Save new password</button>'+
+ '<button type="button" id="sfg-recovery-back">Back to sign in</button>'+
+ '</form>';
+sfgSigninBox.appendChild(sfgRecoveryPanel);
+const sfgStandardLogin=[...sfgSigninBox.children].filter(
+ el=>el!==sfgRecoveryPanel&&el!==sfgSigninStatus&&el!==sfgCloseSignIn&&!el.classList.contains('auth-logo'));
+const sfgRecoveryParams=new URLSearchParams(location.search);
+const sfgRecoveryHash=new URLSearchParams(location.hash.replace(/^#/,''));
+const sfgRecoveryError=sfgRecoveryParams.get('error')||sfgRecoveryHash.get('error');
+let sfgRecoveryActive=!sfgRecoveryError&&(
+ sfgRecoveryParams.get('reset')==='1'||sfgRecoveryParams.get('type')==='recovery'||
+ sfgRecoveryHash.get('type')==='recovery');
+let sfgRecoveryVerified=false;
+function sfgRecoveryUrlClean(){
+ const url=new URL(location.href);
+ for(const key of ['reset','type','token','token_hash','code','error','error_code','error_description'])url.searchParams.delete(key);
+ url.hash='';
+ window.history.replaceState(window.history.state,'',url.pathname+url.search);
+}
+function sfgSwitchAuthView(recovery){
+ for(const el of sfgStandardLogin)el.hidden=Boolean(recovery);
+ sfgRecoveryPanel.hidden=!recovery;
+ if(!recovery){
+  document.getElementById('sfg-new-password').value='';
+  document.getElementById('sfg-confirm-password').value='';
+ }
+}
+function sfgShowRecovery(){
+ sfgRecoveryActive=true;
+ sfgSwitchAuthView(true);
+ openSignIn();
+ sfgSigninStatus.textContent='';
+ document.getElementById('sfg-new-password').focus();
+}
+async function sfgLeaveRecovery(close=false){
+ sfgRecoveryActive=false;
+ sfgRecoveryVerified=false;
+ try{await auth().auth.signOut({scope:'local'})}
+ catch(e){console.error('Recovery sign-out failed',e instanceof Error?e.name:'unexpected')}
+ currentUser=null;
+ sfgSwitchAuthView(false);
+ sfgRecoveryUrlClean();
+ signMessage('');
+ if(close)closeSignIn();else openSignIn();
+}
+sfgCloseSignIn.addEventListener('click',e=>{
+ if(!sfgRecoveryActive)return;
+ e.preventDefault();e.stopImmediatePropagation();
+ sfgLeaveRecovery(true);
+},true);
+document.getElementById('sfg-recovery-back').addEventListener('click',()=>sfgLeaveRecovery());
+document.getElementById('sfg-recovery-form').addEventListener('submit',async e=>{
+ e.preventDefault();
+ const pwd=document.getElementById('sfg-new-password').value;
+ const confirm=document.getElementById('sfg-confirm-password').value;
+ if(pwd.length<8){signMessage('Your new password must be at least 8 characters.');return}
+ if(pwd!==confirm){signMessage('The passwords do not match. Please try again.');return}
+ if(!sfgRecoveryVerified){signMessage('This reset link could not be verified. Request a new password-reset email.');return}
+ const btn=e.currentTarget.querySelector('button[type="submit"]');
+ if(btn.disabled)return;
+ btn.disabled=true;btn.textContent='Saving new password…';
+ signMessage('Updating your password…');
+ try{
+  const email=currentUser?.email||'';
+  const {error}=await auth().auth.updateUser({password:pwd});
+  if(error)throw error;
+  const {error:signoutError}=await auth().auth.signOut({scope:'local'});
+  if(signoutError)throw new Error('Password updated, but automatic sign-out was not confirmed. Please sign out and sign in again.');
+  currentUser=null;
+  sfgRecoveryActive=false;sfgRecoveryVerified=false;
+  sfgSwitchAuthView(false);
+  sfgRecoveryUrlClean();
+  if(email)document.getElementById('signin-email').value=email;
+  signMessage('Password updated! Sign in with your new password.');
+  openSignIn();
+ }catch(error){signMessage(error?.message||'Password could not be updated. Please try again.')}
+ finally{btn.disabled=false;btn.textContent='Save new password'}
+});
+resetPassword=async function(){
+ const input=document.getElementById('signin-email'),email=input?.value.trim()||'';
+ if(!email||!input.checkValidity()){signMessage('Enter a valid email address above first.');return}
+ await withAuthButton(document.querySelector('#signin button[onclick="resetPassword()"]'),'Sending link…',async()=>{
+  signMessage('Requesting a password-reset email…');
+  const url=new URL(authRedirectUrl());
+  url.searchParams.set('reset','1');
+  const {error}=await auth().auth.resetPasswordForEmail(email,{redirectTo:url.toString()});
+  if(error)throw error;
+  signMessage('Password reset requested. If an account exists, check your inbox and spam folder for the reset link.');
+ });
+};
+initializeAccount=async function(){
+ try{
+  const roleFromUrl=new URLSearchParams(location.search).get('accountType');
+  if(!requestedRole&&nav[roleFromUrl])requestedRole=roleFromUrl;
+  auth().auth.onAuthStateChange((event,session)=>{
+   if(event==='PASSWORD_RECOVERY'){
+    sfgRecoveryVerified=Boolean(session?.user);
+    currentUser=session?.user||null;
+    sfgShowRecovery();
+    return;
+   }
+   if(sfgRecoveryActive)return;
+   if(session?.user&&session.user.id!==currentUser?.id){
+    currentUser=session.user;
+    setTimeout(()=>{if(!sfgRecoveryActive)readAccount()},0);
+   }else if(!session?.user&&currentUser){
+    currentUser=null;
+    home({history:'replace'});
+   }
+  });
+  const {data:{session},error}=await auth().auth.getSession();
+  if(error)throw error;
+  if(sfgRecoveryError){
+   sfgRecoveryUrlClean();
+   sfgSwitchAuthView(false);
+   openSignIn();
+   signMessage('This password-reset link has expired or is invalid. Enter your email and request a new link.');
+   return;
+  }
+  if(sfgRecoveryActive){
+   currentUser=session?.user||null;
+   sfgRecoveryVerified=Boolean(currentUser)||sfgRecoveryVerified;
+   sfgShowRecovery();
+   if(!sfgRecoveryVerified)signMessage('This link is not verified yet. Request a new password-reset email if it has expired.');
+   return;
+  }
+  currentUser=session?.user||currentUser||null;
+  if(currentUser)await readAccount();
+ }catch(error){
+  console.error('Sign-in initialization failed',error instanceof Error?error.name:'unexpected');
+  if(sfgRecoveryActive){sfgShowRecovery();signMessage('Unable to verify the reset link. Please request a new link.')}
+  else{openSignIn();signMessage('Sign in is temporarily unavailable. Please retry.')}
+ }finally{syncAccountMenu()}
+};
 mountAmbassadorEntry();
 initializeAccount();
 })();
