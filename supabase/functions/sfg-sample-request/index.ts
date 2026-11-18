@@ -6,7 +6,7 @@ const ORIGIN = "https://sampling-for-good-marketplace.vercel.app";
 const brandIds = new Set([
   "liquid-death","reeds-coffee","revive","brand-request","celsius","alani",
   "pibb","mighty","redbull","olipop","claude","dove","bumblebee",
-  "martie","poppi","elf","starface"
+  "martie","poppi","elf","starface","final-boss-sour","rogue-protein-snacks"
 ]);
 const allowedHeaders = {
   "Access-Control-Allow-Origin": ORIGIN,

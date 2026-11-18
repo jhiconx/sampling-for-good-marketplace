@@ -9,27 +9,87 @@ for(const name of hiddenOfferNames){
   interest.delete(name);
   delete brandIds[name];
 }
-// Display authentic brand-site marks instead of hand-drawn imitation packaging.
-// Brand-site favicons are fetched from the brands' own domains via Google's favicon endpoint.
-const officialBrandDomains={
-  'Celsius':'celsius.com',
-  'Alani Nu':'alaninu.com',
-  'Liquid Death':'liquiddeath.com',
-  'Red Bull':'redbull.com',
-  'Olipop':'drinkolipop.com',
-  'Martie Free Item':'martie.com',
-  'Poppi':'drinkpoppi.com',
-  'e.l.f.':'elfcosmetics.com',
-  'Starface':'starface.world'
+// Actual brand wordmarks and first-party product artwork (not site favicons).
+// These image URLs were sourced from identifiable branded pages and trusted distributors.
+// Do not use favicon services here: a favicon is not a branded offer-card logo.
+const addedBrandOffers=[
+  {name:'Final Boss Sour',type:'Real-fruit sour snacks',tone:'#fbe0b7',art:'final-boss-sour'},
+  {name:'Rogue Protein Snacks',type:'High-protein chips and puffs',tone:'#f2e3da',art:'rogue-protein-snacks'}
+];
+for(const offer of addedBrandOffers){
+  if(!brands.some(existing=>existing.name===offer.name))brands.push(offer);
+}
+brandIds['Final Boss Sour']='final-boss-sour';
+brandIds['Rogue Protein Snacks']='rogue-protein-snacks';
+
+const verifiedBrandArtwork={
+  "Revive Collagen": {
+    "url": "https://mma.prnewswire.com/media/2721948/Revive_Collagen_Logo.jpg?p=facebook",
+    "type": "logo"
+  },
+  "Celsius": {
+    "url": "https://www.cooperscandy.com/upload/brands/Celsius.jpg",
+    "type": "logo"
+  },
+  "Alani Nu": {
+    "url": "https://canikin.com/cdn/shop/collections/Alani_Logo_New_1600x_e54ca3fc-f7be-4601-9d09-9eda240b836d.webp?v=1747110797",
+    "type": "logo"
+  },
+  "Liquid Death": {
+    "url": "https://cdn.cookielaw.org/logos/302f9988-33e4-4200-b7eb-85b1d0857948/0193878a-0df6-7bd0-82ed-69f1a126f2df/8ab1f310-6635-4f23-8e3b-3977e3044aa6/LD_Text_Only_Logo_No_Water_Black_Horizontal.png",
+    "type": "logo"
+  },
+  "Red Bull": {
+    "url": "https://cdn.inspireuplift.com/uploads/images/seller_products/35996/1705988367_MR-glowup-lg220124h37-2312024123911.jpeg",
+    "type": "logo"
+  },
+  "Olipop": {
+    "url": "https://images.squarespace-cdn.com/content/v1/60d10218a62a396503597a70/636d59cc-dd62-4475-b340-909eb99c66ed/OLIlogo.jpg",
+    "type": "logo"
+  },
+  "Martie Free Item": {
+    "url": "https://media.licdn.com/dms/image/v2/D4D10AQHWKuo_hTlMSQ/image-shrink_1280/image-shrink_1280/0/1702509558013?e=2147483647&t=XW0IWgX8aRCnfGw1RoKzAOPMjicBj6Fp7We3N48h6Js&v=beta",
+    "type": "logo"
+  },
+  "Poppi": {
+    "url": "https://www.pepsicopartners.com/medias/poppi-logo-600x600.jpg?context=bWFzdGVyfGltYWdlc3wzMzA5N3xpbWFnZS9qcGVnfGFHVTRMMmcxTkM4eE1EY3hNemN3TnpVM056TTNOQzl3YjNCd2FTMXNiMmR2TFRZd01IZzJNREF1YW5CbnwyZjM3OTBiOWM3YjVjNWE0ZmU1YzkzYTQ1ZThlYTQ2Y2Q5MzFiYzJlZmZjZTQ1YjhkMTk5MWNmMjBmYmY0OTRm",
+    "type": "logo"
+  },
+  "e.l.f.": {
+    "url": "https://s3.amazonaws.com/jebbit-assets/images/dXYCN4je/business-images/GThXhpoSVygLwxPKxSK3_ELF-Logo_Black.png",
+    "type": "logo"
+  },
+  "Starface": {
+    "url": "https://media.ulta.com/v/ulta/2631428_vid01/thumbs/3ea5aa07-0bef-403b-81ef-d1907128aebb",
+    "type": "logo"
+  },
+  "Final Boss Sour": {
+    "url": "https://game.finalbosssour.com/fbs_logo.png",
+    "type": "logo"
+  },
+  "Rogue Protein Snacks": {
+    "url": "https://roguesnacks.com/cdn/shop/files/Combo-Image.png?v=1775867583",
+    "type": "product"
+  }
 };
-const originalBrandArt=brandArt;
+const brandArtBeforeLogoFix=brandArt;
+function offerArtEscape(value){
+  return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
 brandArt=function(b){
-  const domain=officialBrandDomains[b.name];
-  if(!domain)return originalBrandArt(b);
-  const name=String(b.name).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
-  const url='https://www.google.com/s2/favicons?domain='+encodeURIComponent(domain)+'&sz=256';
-  return '<div class="product-art simple"><img src="'+url+'" alt="'+name+' brand mark" loading="lazy" referrerpolicy="no-referrer" style="width:104px;height:104px;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.08))" onerror="this.outerHTML=\x27<span class=brand-logo-word>'+name.replace(/'/g,'&#39;')+'</span>\x27"></div>';
+  const artwork=verifiedBrandArtwork[b.name];
+  if(!artwork)return brandArtBeforeLogoFix(b);
+  const safeName=offerArtEscape(b.name);
+  const safeUrl=offerArtEscape(artwork.url);
+  const isProduct=artwork.type==='product';
+  const altText=isProduct?(b.name+' product packaging with actual ROGUE brand lettering'):(b.name+' brand logo');
+  const label=isProduct?'Product artwork from the brand':'Brand logo';
+  return '<div class="product-art sfg-brand-logo-art '+(isProduct?'sfg-brand-product-art':'')+'" data-brand-art="'+safeName+'">'+
+    '<img src="'+safeUrl+'" alt="'+offerArtEscape(altText)+'" title="'+offerArtEscape(label)+'" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.hidden=true;this.nextElementSibling.hidden=false">'+
+    '<span class="sfg-logo-fallback" hidden>'+safeName+'</span>'+
+    '</div>';
 };
+
 const m={chapters:[],brands:[],events:[],proposals:[],threads:[],messages:[],activeThread:null,loading:false,loaded:false,eventChoice:null,authRole:null,masterAccess:false,verifiedUserId:null};
 const states=['Arizona','California','Texas','Florida','Georgia','Alabama','North Carolina','South Carolina','Tennessee','Mississippi','Louisiana','Kentucky','Michigan','Ohio','Indiana','Illinois','Wisconsin','Minnesota','Iowa','Missouri','Kansas','Nebraska','Oklahoma','Colorado','Utah','Nevada','Oregon','Washington','Idaho','New York','New Jersey','Pennsylvania','Massachusetts','Connecticut','Virginia','Maryland','Other'];
 const regions=['Nationwide','Northeast','Southeast','Midwest','Southwest','West','Pacific Northwest','Mid-Atlantic'];
