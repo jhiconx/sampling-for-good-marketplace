@@ -153,15 +153,19 @@ Deno.serve(async (req) => {
       return json({ error: "Please check your Instagram handle." }, 400);
     if (data.consent !== true) return json({ error: "Please agree to be contacted about the ambassador opportunity." }, 400);
     const authHeaders = { "apikey": secret, "Authorization": "Bearer " + secret, "Content-Type": "application/json" };
-    const existing = new URL("/rest/v1/sfg_ambassador_applications", supabase);
-    existing.searchParams.set("select", "id");
-    existing.searchParams.set("email", "eq." + email);
-    existing.searchParams.set("created_at", "gte." + new Date(Date.now() - 60 * 60 * 1000).toISOString());
-    existing.searchParams.set("limit", "1");
-    const check = await fetch(existing, { headers: authHeaders, signal: AbortSignal.timeout(8000) });
-    if (!check.ok) return json({ error: "Application service temporarily unavailable." }, 503);
-    const recent = await check.json();
-    if (recent?.length) return json({ ok: true, received: true });
+    // The designated QA inbox may submit repeatedly without the one-hour duplicate window.
+    // All other applicants retain duplicate protection.
+    if (email !== "demostudio@yahoo.com") {
+      const existing = new URL("/rest/v1/sfg_ambassador_applications", supabase);
+      existing.searchParams.set("select", "id");
+      existing.searchParams.set("email", "eq." + email);
+      existing.searchParams.set("created_at", "gte." + new Date(Date.now() - 60 * 60 * 1000).toISOString());
+      existing.searchParams.set("limit", "1");
+      const check = await fetch(existing, { headers: authHeaders, signal: AbortSignal.timeout(8000) });
+      if (!check.ok) return json({ error: "Application service temporarily unavailable." }, 503);
+      const recent = await check.json();
+      if (recent?.length) return json({ ok: true, received: true });
+    }
     const saved = await fetch(supabase + "/rest/v1/sfg_ambassador_applications", {
       method: "POST",
       headers: { ...authHeaders, "Prefer": "return=representation" },
