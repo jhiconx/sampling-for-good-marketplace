@@ -144,7 +144,7 @@
   };
   busy=true;button.disabled=true;button.textContent='Submitting application…';status.textContent='';status.className='status';
   try{
-   const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),15000);
+   const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),25000);
    let response;
    try{response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:controller.signal});}finally{clearTimeout(timer);}
    const result=await response.json().catch(()=>({}));
