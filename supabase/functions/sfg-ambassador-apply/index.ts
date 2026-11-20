@@ -174,11 +174,13 @@ Deno.serve(async (req) => {
     }
     const savedRows=await saved.json().catch(()=>[]);
     const applicationId=savedRows?.[0]?.id;
-    const emailed=typeof applicationId==="string"&&/^[0-9a-f-]{36}$/i.test(applicationId)
-      ? await sendConfirmation(applicationId,full_name,email) : false;
-    const notified=typeof applicationId==="string"&&/^[0-9a-f-]{36}$/i.test(applicationId)
-      ? await notifyReviewers(applicationId,{full_name,instagram_handle:instagram_handle ? "@"+instagram_handle : "",email,mobile,school,experience})
-      : false;
+    const validId=typeof applicationId==="string"&&/^[0-9a-f-]{36}$/i.test(applicationId);
+    const [emailed,notified]=validId
+      ? await Promise.all([
+          sendConfirmation(applicationId,full_name,email),
+          notifyReviewers(applicationId,{full_name,instagram_handle:instagram_handle ? "@"+instagram_handle : "",email,mobile,school,experience})
+        ])
+      : [false,false];
     return json({ ok: true, received: true, emailed, notified });
   } catch (err) {
     console.error("Ambassador application unavailable", err instanceof Error ? err.name : "unexpected");
