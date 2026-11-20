@@ -111,7 +111,7 @@
   let first=null;
   for(const id of fields){
    const input=document.getElementById(id),value=input.value.trim();
-   const valid=id==='email'? /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(value):
+   const valid=id==='email'? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value):
     id==='mobile'? (value.replace(/\D/g,'').length>=10&&value.replace(/\D/g,'').length<=15):
     value.length>=2;
    if(!valid){showFieldError(input,messages[id]);first??=input;}else clearFieldError(input);
