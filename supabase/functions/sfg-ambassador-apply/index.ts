@@ -90,6 +90,43 @@ async function sendConfirmation(id: string, fullName: string, recipient: string)
  }
 }
 
+
+const REVIEW_RECIPIENTS = ["jhudson@iconx.io", "rcramer@iconx.io"] as const;
+async function notifyReviewers(id: string, applicant: {
+ full_name: string; instagram_handle: string; email: string; mobile: string; school: string; experience: string;
+}) {
+ const key = Deno.env.get("RESEND_API_KEY");
+ const from = Deno.env.get("AMBASSADOR_FROM_EMAIL") || Deno.env.get("SAMPLE_FROM_EMAIL");
+ if (!key || !from) { console.error("Ambassador reviewer email credentials missing."); return false; }
+ const entries = [
+  ["Applicant", applicant.full_name], ["Email", applicant.email], ["Phone", applicant.mobile],
+  ["School", applicant.school], ["Instagram", applicant.instagram_handle || "Not provided"],
+  ["Why they applied", applicant.experience || "Not provided"], ["Application ID", id]
+ ];
+ const body = entries.map(([label, value]) => label + ": " + value).join("\n\n");
+ const html = "<h2>New Sampling For Good campus ambassador application</h2>" +
+  entries.map(([label, value]) => "<p><strong>" + escapeHtml(label) + ":</strong> " +
+   escapeHtml(value).replace(/\n/g, "<br>") + "</p>").join("");
+ try {
+  const response = await fetch("https://api.resend.com/emails", {
+   method: "POST",
+   headers: {"Authorization": "Bearer " + key, "Content-Type": "application/json",
+    "Idempotency-Key": "sfg-ambassador-review/" + id},
+   body: JSON.stringify({
+    from, to: [...REVIEW_RECIPIENTS],
+    subject: "New Campus Ambassador Application — " + applicant.school,
+    text: body, html
+   }),
+   signal: AbortSignal.timeout(7000)
+  });
+  if (!response.ok) console.error("Ambassador reviewer notification rejected", response.status);
+  return response.ok;
+ } catch (error) {
+  console.error("Ambassador reviewer notification failed", error instanceof Error ? error.name : "unexpected");
+  return false;
+ }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers });
   if (req.method !== "POST") return json({ error: "Method not allowed." }, 405);
@@ -139,7 +176,10 @@ Deno.serve(async (req) => {
     const applicationId=savedRows?.[0]?.id;
     const emailed=typeof applicationId==="string"&&/^[0-9a-f-]{36}$/i.test(applicationId)
       ? await sendConfirmation(applicationId,full_name,email) : false;
-    return json({ ok: true, received: true, emailed });
+    const notified=typeof applicationId==="string"&&/^[0-9a-f-]{36}$/i.test(applicationId)
+      ? await notifyReviewers(applicationId,{full_name,instagram_handle:instagram_handle ? "@"+instagram_handle : "",email,mobile,school,experience})
+      : false;
+    return json({ ok: true, received: true, emailed, notified });
   } catch (err) {
     console.error("Ambassador application unavailable", err instanceof Error ? err.name : "unexpected");
     return json({ error: "Unable to submit right now. Please try again." }, 503);
